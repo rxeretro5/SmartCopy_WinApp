@@ -77,7 +77,8 @@
 ดับเบิลคลิก `build.bat` บนเครื่อง Windows ได้เลย ใช้ตัวคอมไพล์ C# ที่มากับ Windows (.NET Framework 4.x) ไม่ต้องติดตั้ง Visual Studio
 ไฟล์ที่ได้จะอยู่ที่ `dist\QuickCopyPanel.exe`
 
-ทุกครั้งที่ push ขึ้น GitHub ระบบ GitHub Actions จะคอมไพล์ให้อัตโนมัติ ส่วนการ push tag `v*` เช่น `v1.0.1` จะสร้าง Release พร้อมไฟล์ .exe
+ทุกครั้งที่ push เข้า `main` ระบบ GitHub Actions จะคอมไพล์และสร้าง/อัปเดต Release ให้อัตโนมัติ โดยใช้เลขเวอร์ชันจาก `AssemblyVersion` ใน `src/Program.cs`
+ถ้าต้องการออกเวอร์ชันใหม่ ให้แก้เลขเวอร์ชันนั้น (เช่น `1.0.1.0`) แล้ว push
 
 ```
 src/

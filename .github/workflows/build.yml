@@ -33,10 +33,25 @@ jobs:
           name: QuickCopyPanel
           path: dist/
 
+      # เลขเวอร์ชันอ่านจาก AssemblyVersion ใน src/Program.cs
+      - name: Read version
+        id: ver
+        shell: pwsh
+        run: |
+          $m = Select-String -Path src/Program.cs -Pattern 'AssemblyVersion\("(\d+\.\d+\.\d+)' | Select-Object -First 1
+          "version=$($m.Matches[0].Groups[1].Value)" >> $env:GITHUB_OUTPUT
+
+      # push เข้า main = สร้าง/อัปเดต Release ตามเลขเวอร์ชัน (เช่น v1.0.0) อัตโนมัติ
       - name: Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: แผงข้อความด่วน v${{ steps.ver.outputs.version }}
+          body: |
+            ดาวน์โหลด **QuickCopyPanel.exe** แล้วดับเบิลคลิกเพื่อใช้งาน (Windows 10/11 ไม่ต้องติดตั้งเพิ่ม)
+            ถ้า Windows ขึ้นหน้าจอ "Windows protected your PC" ให้กด More info → Run anyway
           files: |
             dist/QuickCopyPanel.exe
             QuickCopyPanel.zip
