@@ -7,8 +7,8 @@ using System.Windows.Forms;
 [assembly: AssemblyTitle("แผงข้อความด่วน (QuickCopy Panel)")]
 [assembly: AssemblyProduct("QuickCopy Panel")]
 [assembly: AssemblyDescription("แผงเก็บข้อความที่ใช้บ่อย คลิกเพื่อคัดลอก")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.1.0")]
+[assembly: AssemblyFileVersion("1.0.1.0")]
 
 namespace QuickCopy
 {

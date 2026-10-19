@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
@@ -105,21 +106,96 @@ namespace QuickCopy
             if (Settings.FontSize < 8f || Settings.FontSize > 20f) Settings.FontSize = 10f;
         }
 
+        public const int CurrentVersion = 2;
+
+        /// <summary>ข้อความเริ่มต้นของหมวด "ทั่วไป" — จัดเรื่องที่คล้ายกันไว้ติดกัน</summary>
+        private static readonly string[] GeneralDefaults =
+        {
+            // เชิญ
+            "ขอเชิญเข้าร่วมโครงการฯ",
+            "ขอเชิญเข้าร่วมโครงการฝึกอบรมฯ",
+            "ขอเชิญร่วมงานฯ",
+            "เชิญร่วมทำบุญฯ",
+            // ประชาสัมพันธ์
+            "ประชาสัมพันธ์ฯ",
+            "ประชาสัมพันธ์โครงการฯ",
+            // แจ้ง
+            "แจ้งแนวทางปฏิบัติฯ",
+            "แจ้งแต่งตั้งผู้บริหารระดับสูงเพื่อปฏิบัติหน้าที่ฯ",
+            "แจ้งสมาชิก ฌกส.ค้างชำระ",
+            // ส่ง
+            "ขอส่งวารสารฯ",
+            "ส่งสำเนาหนังสือเวียนหลายฉบับฯ",
+            "ส่งรายงานการประชุมฯ",
+            // อื่นๆ
+            "ขอความอนุเคราะห์ตอบแบบสอบถามฯ",
+            "เพิกถอนรายชื่อผู้ทิ้งงาน",
+        };
+
+        /// <summary>ข้อความตัวอย่างของหมวด "หนังสือราชการ" (เวอร์ชันแรกเคยอยู่ในหมวด "ทั่วไป")</summary>
+        private static List<Snippet> OfficialLetterDefaults()
+        {
+            return new List<Snippet>
+            {
+                new Snippet(null, "จึงเรียนมาเพื่อโปรดทราบ"),
+                new Snippet(null, "จึงเรียนมาเพื่อโปรดพิจารณา"),
+                new Snippet(null, "จึงเรียนมาเพื่อโปรดทราบและพิจารณาดำเนินการต่อไปด้วย จะเป็นพระคุณ"),
+                new Snippet(null, "ทราบ และดำเนินการตามเสนอ"),
+                new Snippet(null, "เพื่อโปรดทราบและแจ้งผู้เกี่ยวข้องทราบ"),
+                new Snippet("ลงวันที่วันนี้", "{วันที่}"),
+                new Snippet("ตัวอย่างหลายบรรทัด", "ขอแสดงความนับถือ\r\n\r\n\r\n(                              )\r\nตำแหน่ง ......................"),
+            };
+        }
+
         public static AppData CreateSample()
         {
-            var d = new AppData();
+            var d = new AppData { Version = CurrentVersion };
             var g = new SnippetGroup("ทั่วไป");
-            g.Items.Add(new Snippet(null, "จึงเรียนมาเพื่อโปรดทราบ"));
-            g.Items.Add(new Snippet(null, "จึงเรียนมาเพื่อโปรดพิจารณา"));
-            g.Items.Add(new Snippet(null, "จึงเรียนมาเพื่อโปรดทราบและพิจารณาดำเนินการต่อไปด้วย จะเป็นพระคุณ"));
-            g.Items.Add(new Snippet(null, "ทราบ และดำเนินการตามเสนอ"));
-            g.Items.Add(new Snippet(null, "เพื่อโปรดทราบและแจ้งผู้เกี่ยวข้องทราบ"));
-            g.Items.Add(new Snippet("ลงวันที่วันนี้", "{วันที่}"));
-            g.Items.Add(new Snippet("ตัวอย่างหลายบรรทัด", "ขอแสดงความนับถือ\r\n\r\n\r\n(                              )\r\nตำแหน่ง ......................"));
+            foreach (var t in GeneralDefaults) g.Items.Add(new Snippet(null, t));
             d.Groups.Add(g);
-            d.Groups.Add(new SnippetGroup("หนังสือราชการ"));
+            var letters = new SnippetGroup("หนังสือราชการ");
+            letters.Items.AddRange(OfficialLetterDefaults());
+            d.Groups.Add(letters);
             d.Groups.Add(new SnippetGroup("ที่อยู่ / เบอร์โทร"));
             return d;
+        }
+
+        /// <summary>
+        /// อัปเกรดข้อมูลจากเวอร์ชันแรก: ย้ายข้อความตัวอย่างเดิมจาก "ทั่วไป" ไป "หนังสือราชการ"
+        /// แล้วเติมข้อความเริ่มต้นชุดใหม่ใน "ทั่วไป" (ข้อความที่ผู้ใช้เพิ่มเองจะไม่ถูกแตะ)
+        /// คืนค่า true ถ้ามีการเปลี่ยนแปลงที่ต้องบันทึก
+        /// </summary>
+        public bool Migrate()
+        {
+            if (Version >= CurrentVersion) return false;
+            if (Version < 2)
+            {
+                var general = Groups.FirstOrDefault(g => g.Name == "ทั่วไป");
+                var letters = Groups.FirstOrDefault(g => g.Name == "หนังสือราชการ");
+                if (general != null)
+                {
+                    if (letters == null)
+                    {
+                        letters = new SnippetGroup("หนังสือราชการ");
+                        Groups.Insert(Groups.IndexOf(general) + 1, letters);
+                    }
+                    var oldSamples = new HashSet<string>(OfficialLetterDefaults().Select(x => x.Text));
+                    var moving = general.Items.Where(x => oldSamples.Contains(x.Text)).ToList();
+                    foreach (var s in moving)
+                    {
+                        general.Items.Remove(s);
+                        if (!letters.Items.Any(x => x.Text == s.Text)) letters.Items.Add(s);
+                    }
+                    // ข้อความเริ่มต้นไว้ด้านบนตามลำดับที่จัดกลุ่มไว้ (ใช้ของเดิมถ้ามีอยู่แล้ว) ต่อด้วยข้อความของผู้ใช้
+                    var ordered = GeneralDefaults
+                        .Select(t => general.Items.FirstOrDefault(x => x.Text == t) ?? new Snippet(null, t))
+                        .ToList();
+                    ordered.AddRange(general.Items.Where(x => !GeneralDefaults.Contains(x.Text)));
+                    general.Items = ordered;
+                }
+            }
+            Version = CurrentVersion;
+            return true;
         }
     }
 
@@ -164,6 +240,10 @@ namespace QuickCopy
             }
             if (data == null) data = AppData.CreateSample();
             data.Normalize();
+            if (data.Migrate())
+            {
+                try { Save(data); } catch { }
+            }
             return data;
         }
 
